@@ -1,0 +1,444 @@
+<!DOCTYPE html><html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>QRコードジェネレータ — プロ版</title>
+  <meta name="description" content="多機能なQRコード生成サイト（vCard/Wi-Fi/メール/SMS/ロゴ埋め込み/SVG出力 等）" />
+  <style>
+    :root{
+      --bg:#0b1220; --card:#071226; --accent:#06b6d4; --muted:#9fb2c8; --glass: rgba(255,255,255,0.03);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter, Noto Sans JP, system-ui, -apple-system, "Segoe UI", Roboto, Arial;background:linear-gradient(180deg,var(--bg),#031025);color:#e8f2fb;min-height:100vh;padding:20px}
+    .container{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 420px;gap:18px}
+    header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+    h1{margin:0;font-size:18px}
+    .left{background:var(--card);padding:14px;border-radius:12px}
+    .right{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:14px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:12px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type=text],input[type=password],input[type=number],select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;font-size:14px}
+    textarea{min-height:72px}
+    .row{display:flex;gap:8px}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;border:0;cursor:pointer;background:linear-gradient(90deg,var(--accent),#38bdf8);color:#042129;font-weight:700}
+    .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);font-weight:600}
+    .section{margin-bottom:12px;padding:12px;background:var(--glass);border-radius:10px}
+    .small{font-size:12px;color:var(--muted)}
+    .controls-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .preview-box{width:360px;height:360px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.2);border-radius:10px;padding:10px}
+    .meta{font-size:13px;color:var(--muted)}
+    .input-inline{display:flex;gap:8px;align-items:center}
+    .flex{display:flex;gap:8px}
+    .logo-preview{max-width:90px;max-height:60px;object-fit:contain;border-radius:6px}
+    footer{grid-column:1/-1;text-align:center;color:var(--muted);font-size:13px;margin-top:8px}
+    @media (max-width:980px){.container{grid-template-columns:1fr;}.preview-box{width:260px;height:260px}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>QRコードジェネレータ — プロ版</h1>
+        <div class="small">vCard / Wi‑Fi / Email / SMS / ロゴ埋め込み / SVG 出力 / 高度なデザイン</div>
+      </div>
+      <div class="meta">リアルタイムプレビュー • ダウンロード可（PNG / SVG）</div>
+    </header><main class="left">
+  <div class="section">
+    <label for="template">テンプレート</label>
+    <select id="template">
+      <option value="url">URL</option>
+      <option value="text">テキスト</option>
+      <option value="wifi">Wi‑Fi</option>
+      <option value="email">メール</option>
+      <option value="sms">SMS</option>
+      <option value="vcard">vCard</option>
+    </select>
+  </div>
+
+  <!-- Dynamic inputs container -->
+  <div id="templateFields"></div>
+
+  <div class="section">
+    <label>デザイン</label>
+    <div class="controls-grid">
+      <div>
+        <label for="fg">前景色</label>
+        <input type="color" id="fg" value="#000000">
+      </div>
+      <div>
+        <label for="bg">背景色</label>
+        <input type="color" id="bg" value="#ffffff">
+      </div>
+    </div>
+    <div style="height:8px"></div>
+    <div class="controls-grid">
+      <div>
+        <label for="size">サイズ (px)</label>
+        <input type="number" id="size" value="360" min="64" max="2000">
+      </div>
+      <div>
+        <label for="margin">余白 (module単位)</label>
+        <input type="number" id="margin" value="10" min="0" max="100">
+      </div>
+    </div>
+
+    <div style="height:8px"></div>
+    <div class="controls-grid">
+      <div>
+        <label for="ecLevel">誤り訂正レベル</label>
+        <select id="ecLevel"><option value="L">L (7%)</option><option value="M" selected>M (15%)</option><option value="Q">Q (25%)</option><option value="H">H (30%)</option></select>
+      </div>
+      <div>
+        <label for="dotStyle">ドット形状</label>
+        <select id="dotStyle"><option value="square">四角</option><option value="rounded">丸</option><option value="dots">ドット</option></select>
+      </div>
+    </div>
+
+    <div style="height:8px"></div>
+    <div class="controls-grid">
+      <div>
+        <label for="cornerStyle">コーナー形状</label>
+        <select id="cornerStyle"><option value="square">四角／角丸なし</option><option value="rounded">角丸</option></select>
+      </div>
+      <div>
+        <label for="bgTransparent">背景透過</label>
+        <select id="bgTransparent"><option value="false">オフ</option><option value="true">オン（透過）</option></select>
+      </div>
+    </div>
+
+    <div style="height:8px"></div>
+    <div>
+      <label for="logoFile">ロゴ（中央に埋め込み）</label>
+      <div class="flex" style="align-items:center">
+        <input id="logoFile" type="file" accept="image/*">
+        <div style="flex:1"></div>
+        <img id="logoPreview" class="logo-preview" src="" alt="" style="display:none">
+      </div>
+      <div class="small">推奨: 300x300px 以下, 背景透過PNGが最適。誤り訂正レベルを高めにしてください（Q/H）。</div>
+    </div>
+
+  </div>
+
+  <div class="section">
+    <label>出力 / 操作</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button id="updateBtn" class="btn">更新</button>
+      <button id="downloadPng" class="btn secondary">PNGダウンロード</button>
+      <button id="downloadSvg" class="btn secondary">SVGダウンロード</button>
+      <button id="copyDataUrl" class="btn secondary">データURLをコピー</button>
+      <button id="reset" class="btn secondary">リセット</button>
+    </div>
+    <div style="height:8px"></div>
+    <div class="small">SVG を出力すると拡大しても鮮明です。ロゴ埋め込みは PNG/Canvas ベースの合成で最も安定します。</div>
+  </div>
+
+  <div class="section">
+    <label>詳細情報</label>
+    <div class="small" id="info">モード: - | 文字数: 0</div>
+  </div>
+
+</main>
+
+<aside class="right">
+  <div style="font-size:14px;color:var(--muted)">プレビュー</div>
+  <div id="previewArea" class="preview-box">
+    <!-- QR 表示場所 -->
+    <div id="qrRoot"></div>
+  </div>
+
+  <div class="flex" style="width:100%;justify-content:center">
+    <button id="zoomOut" class="btn secondary">𐄂 ズーム小</button>
+    <button id="zoomIn" class="btn">＋ ズーム大</button>
+  </div>
+
+  <div style="width:100%;display:flex;gap:8px;justify-content:center;align-items:center">
+    <div class="small">サイズプレビュー:</div>
+    <div id="sizeLabel" class="small">360px</div>
+  </div>
+
+</aside>
+
+<footer>作成: プロ版 QR ジェネレータ • カスタマイズしてご利用ください</footer>
+
+  </div>  <!-- ライブラリ: qr-code-styling （SVG/PNG/ロゴ合成が可能） -->  <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>  <script>
+    // DOM references
+    const template = document.getElementById('template');
+    const templateFields = document.getElementById('templateFields');
+    const fg = document.getElementById('fg');
+    const bg = document.getElementById('bg');
+    const sizeInput = document.getElementById('size');
+    const marginInput = document.getElementById('margin');
+    const ecLevel = document.getElementById('ecLevel');
+    const dotStyle = document.getElementById('dotStyle');
+    const cornerStyle = document.getElementById('cornerStyle');
+    const bgTransparent = document.getElementById('bgTransparent');
+    const logoFile = document.getElementById('logoFile');
+    const logoPreview = document.getElementById('logoPreview');
+    const updateBtn = document.getElementById('updateBtn');
+    const downloadPng = document.getElementById('downloadPng');
+    const downloadSvg = document.getElementById('downloadSvg');
+    const copyDataUrl = document.getElementById('copyDataUrl');
+    const resetBtn = document.getElementById('reset');
+    const info = document.getElementById('info');
+    const qrRoot = document.getElementById('qrRoot');
+    const sizeLabel = document.getElementById('sizeLabel');
+    const zoomIn = document.getElementById('zoomIn');
+    const zoomOut = document.getElementById('zoomOut');
+
+    // helper: create input markup per template
+    const templates = {
+      url: () => `
+        <div class="section">
+          <label>URL</label>
+          <input id="fld_url" type="text" placeholder="https://example.com" value="https://">
+        </div>`,
+      text: () => `
+        <div class="section">
+          <label>テキスト</label>
+          <textarea id="fld_text" placeholder="自由にテキストを入力"></textarea></div>`,
+  wifi: () => `
+    <div class="section">
+      <label>Wi‑Fi 設定</label>
+      <input id="fld_wifi_ssid" type="text" placeholder="SSID (例: MyWiFi)">
+      <div class="row" style="margin-top:8px">
+        <input id="fld_wifi_type" type="text" placeholder="暗号化 (WPA/WEP/none)" value="WPA">
+        <input id="fld_wifi_pass" type="text" placeholder="パスワード">
+      </div>
+      <div class="small" style="margin-top:6px">出力: <code>WIFI:T:WPA;S:SSID;P:password;;</code></div>
+    </div>`,
+  email: () => `
+    <div class="section">
+      <label>メール</label>
+      <input id="fld_mail_to" type="text" placeholder="宛先 (to@example.com)">
+      <input id="fld_mail_subject" type="text" placeholder="件名">
+      <textarea id="fld_mail_body" placeholder="本文"></textarea>
+    </div>`,
+  sms: () => `
+    <div class="section">
+      <label>SMS</label>
+      <input id="fld_sms_to" type="text" placeholder="電話番号">
+      <textarea id="fld_sms_body" placeholder="メッセージ"></textarea>
+    </div>`,
+  vcard: () => `
+    <div class="section">
+      <label>vCard</label>
+      <input id="fld_v_name" type="text" placeholder="氏名">
+      <input id="fld_v_tel" type="text" placeholder="電話">
+      <input id="fld_v_email" type="text" placeholder="メール">
+      <input id="fld_v_org" type="text" placeholder="会社 / 組織">
+      <textarea id="fld_v_addr" placeholder="住所"></textarea>
+    </div>`
+};
+
+function renderTemplateFields() {
+  templateFields.innerHTML = templates[template.value]();
+  // attach input listeners for live update
+  const inners = templateFields.querySelectorAll('input, textarea');
+  inners.forEach(i=>i.addEventListener('input', () => { if (autoUpdate) updateQR(); }));
+}
+
+// initial render
+renderTemplateFields();
+template.addEventListener('change', renderTemplateFields);
+
+// QR code styling instance
+let qr = null;
+let currentLogoDataUrl = null;
+let scale = 1;
+let autoUpdate = true;
+
+function buildValueFromTemplate() {
+  const t = template.value;
+  if (t === 'url') { const v = (document.getElementById('fld_url')||{}).value||''; return v; }
+  if (t === 'text') { return (document.getElementById('fld_text')||{}).value||''; }
+  if (t === 'wifi') {
+    const s = (document.getElementById('fld_wifi_ssid')||{}).value||'';
+    const type = (document.getElementById('fld_wifi_type')||{}).value||'WPA';
+    const p = (document.getElementById('fld_wifi_pass')||{}).value||'';
+    return `WIFI:T:${type};S:${escapeSemi(s)};P:${escapeSemi(p)};H:false;`;
+  }
+  if (t === 'email') {
+    const to = (document.getElementById('fld_mail_to')||{}).value||'';
+    const subj = (document.getElementById('fld_mail_subject')||{}).value||'';
+    const body = (document.getElementById('fld_mail_body')||{}).value||'';
+    return `MATMSG:TO:${to};SUB:${subj};BODY:${body};;`;
+  }
+  if (t === 'sms') {
+    const to = (document.getElementById('fld_sms_to')||{}).value||'';
+    const body = (document.getElementById('fld_sms_body')||{}).value||'';
+    return `SMSTO:${to}:${body}`;
+  }
+  if (t === 'vcard') {
+    const name = (document.getElementById('fld_v_name')||{}).value||'';
+    const tel = (document.getElementById('fld_v_tel')||{}).value||'';
+    const emailVal = (document.getElementById('fld_v_email')||{}).value||'';
+    const org = (document.getElementById('fld_v_org')||{}).value||'';
+    const addr = (document.getElementById('fld_v_addr')||{}).value||'';
+    return [
+      'BEGIN:VCARD',
+      'VERSION:3.0',
+      `FN:${name}`,
+      org?`ORG:${org}`:'',
+      tel?`TEL;TYPE=CELL:${tel}`:'',
+      emailVal?`EMAIL:${emailVal}`:'',
+      addr?`ADR:${addr}`:'',
+      'END:VCARD'
+    ].filter(Boolean).join('\n');
+  }
+  return '';
+}
+
+function escapeSemi(s){ return (s||'').replace(/;/g,'\\;'); }
+
+function createQrInstance(opts) {
+  if (qr) try{ qr.clear(); }catch(e){}
+  qrRoot.innerHTML = '';
+  qr = new QRCodeStyling(Object.assign({
+    width: opts.size,
+    height: opts.size,
+    data: opts.data,
+    image: opts.image || undefined,
+    margin: Math.max(0, opts.margin||0),
+    dotsOptions: opts.dotsOptions,
+    cornersSquareOptions: opts.cornersSquareOptions,
+    cornersDotOptions: opts.cornersDotOptions,
+    backgroundOptions: opts.backgroundOptions,
+    imageOptions: opts.imageOptions || {crossOrigin:"anonymous",margin:0}
+  }, {}));
+
+  // append to root
+  qr.append(qrRoot);
+}
+
+function getOptionsFromForm() {
+  const size = Number(sizeInput.value) || 360;
+  sizeLabel.textContent = size + 'px';
+  const margin = Number(marginInput.value) || 0;
+  const data = buildValueFromTemplate();
+  const transparent = bgTransparent.value === 'true';
+  const bgColor = transparent ? 'transparent' : (bg.value || '#ffffff');
+  const dots = dotStyle.value;
+  const corner = cornerStyle.value;
+  const dotsOptions = (()=>{
+    if (dots === 'rounded') return {type:'rounded',color: fg.value};
+    if (dots === 'dots') return {type:'dots',color: fg.value};
+    return {type:'square',color: fg.value};
+  })();
+  const cornersSquareOptions = corner === 'rounded' ? {type:'rounded',color: fg.value} : {type:'square',color: fg.value};
+  const cornersDotOptions = corner === 'rounded' ? {type:'dot',color: fg.value} : {type:'dot',color: fg.value};
+
+  const backgroundOptions = {color: bgColor};
+  const imageOptions = {crossOrigin:'anonymous',margin:0};
+
+  return {
+    size, margin, data,
+    dotsOptions, cornersSquareOptions, cornersDotOptions, backgroundOptions, imageOptions,
+    ecLevel: ecLevel.value
+  };
+}
+
+async function updateQR(keepLogo) {
+  const opts = getOptionsFromForm();
+  // info
+  const mode = detectMode(opts.data);
+  info.textContent = `モード: ${mode} | 文字数: ${opts.data.length}`;
+
+  // prepare options for QRCodeStyling
+  const qropts = {
+    size: opts.size,
+    data: opts.data,
+    margin: opts.margin,
+    dotsOptions: opts.dotsOptions,
+    cornersSquareOptions: opts.cornersSquareOptions,
+    cornersDotOptions: opts.cornersDotOptions,
+    backgroundOptions: opts.backgroundOptions,
+    imageOptions: opts.imageOptions
+  };
+
+  // attach logo if exists
+  if (currentLogoDataUrl && keepLogo !== false) qropts.image = currentLogoDataUrl;
+
+  createQrInstance(qropts);
+}
+
+function detectMode(text){
+  if(!text) return '-';
+  if(/^https?:\/\//i.test(text)) return 'URL';
+  if(/^WIFI:/i.test(text)) return 'Wi‑Fi';
+  if(/^MATMSG:/i.test(text)) return 'Email';
+  if(/^SMSTO:/i.test(text)) return 'SMS';
+  if(/BEGIN:VCARD/i.test(text)) return 'vCard';
+  if(/^[0-9]+$/.test(text)) return '数字のみ';
+  return 'テキスト';
+}
+
+// logo handling
+logoFile.addEventListener('change', async (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) { currentLogoDataUrl = null; logoPreview.style.display='none'; updateQR(false); return; }
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    currentLogoDataUrl = ev.target.result;
+    logoPreview.src = currentLogoDataUrl; logoPreview.style.display = 'block';
+    // set higher error correction suggestion
+    ecLevel.value = 'H';
+    if (autoUpdate) updateQR();
+  };
+  reader.readAsDataURL(f);
+});
+
+// downloads
+downloadPng.addEventListener('click', async ()=>{
+  if(!qr) await updateQR();
+  // qr.getRawData is async; use getDataURL instead
+  const blob = await qr.getRawData('png');
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `qr-${Date.now()}.png`; a.click(); URL.revokeObjectURL(url);
+});
+
+downloadSvg.addEventListener('click', async ()=>{
+  if(!qr) await updateQR();
+  const svg = await qr.getRawData('svg');
+  const blob = new Blob([svg], {type:'image/svg+xml;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `qr-${Date.now()}.svg`; a.click(); URL.revokeObjectURL(url);
+});
+
+copyDataUrl.addEventListener('click', async ()=>{
+  try{
+    if(!qr) await updateQR();
+    const dataUrl = await qr.getRawData('png').then(b=>{ return new Promise((res)=>{ const r = new FileReader(); r.onload = ()=>res(r.result); r.readAsDataURL(b); }); });
+    await navigator.clipboard.writeText(dataUrl);
+    copyDataUrl.textContent = 'コピーしました'; setTimeout(()=>copyDataUrl.textContent='データURLをコピー',1400);
+  }catch(e){ copyDataUrl.textContent='コピー失敗'; setTimeout(()=>copyDataUrl.textContent='データURLをコピー',1400); }
+});
+
+// update button
+updateBtn.addEventListener('click', ()=> updateQR());
+
+// reset
+resetBtn.addEventListener('click', ()=>{
+  // reset fields to default
+  fg.value = '#000000'; bg.value = '#ffffff'; sizeInput.value = 360; marginInput.value = 10; ecLevel.value='M'; dotStyle.value='square'; cornerStyle.value='square'; bgTransparent.value='false'; currentLogoDataUrl=null; logoPreview.style.display='none'; renderTemplateFields(); updateQR(false);
+});
+
+// zoom
+zoomIn.addEventListener('click', ()=>{ scale = Math.min(2, scale + 0.2); qrRoot.style.transform = `scale(${scale})`; });
+zoomOut.addEventListener('click', ()=>{ scale = Math.max(0.4, scale - 0.2); qrRoot.style.transform = `scale(${scale})`; });
+
+// auto update on some inputs
+[fg,bg,sizeInput,marginInput,ecLevel,dotStyle,cornerStyle,bgTransparent].forEach(el=>el.addEventListener('input', ()=>{ if(autoUpdate) updateQR(); }));
+
+// initial render and update
+updateQR();
+
+// keyboard shortcuts (optional)
+document.addEventListener('keydown', (e)=>{
+  if(e.ctrlKey && e.key.toLowerCase()==='s'){ e.preventDefault(); downloadPng.click(); }
+});
+
+// polyfill for QRCodeStyling getRawData (some builds expose toDataURL/getDataURL)
+// Note: QRCodeStyling v1.5 provides getRawData which returns blob/string or data
+
+  </script>
+</body>
+</html>
